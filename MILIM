@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחקי מילים</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #E6E6FA;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #setup, #gameContainer, #summaryScreen {
+            background-color: #FFF0F5;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+        #wordInput {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #9370DB;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #gameArea {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .word {
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #playerButtons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        #playerButtons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #scoreBoard {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .blink {
+            animation: blink-animation 1.5s linear;
+        }
+        @keyframes blink-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .correct::after {
+            content: " ✅";
+        }
+        .incorrect::after {
+            content: " ❌";
+        }
+        #currentPlayer {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        #subtitle {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #4B0082;
+        }
+        #trophy {
+            width: 150px;
+            height: 150px;
+            margin: 20px 0;
+        }
+        #winnerName {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4B0082;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>משחקי מילים</h1>
+    <div id="subtitle">מור קנדי - פשוט למשחק</div>
+    <div id="setup">
+        <h2>הגדרת המשחק</h2>
+        <textarea id="wordInput" placeholder="הכניסו מילים, מופרדות בפסיקים"></textarea>
+        <br>
+        <button onclick="saveWords()">שמרו מילים</button>
+        <div id="playerSection">
+            <h3>שחקנים</h3>
+            <input id="player1Name" type="text" placeholder="שם השחקן הראשון">
+            <input id="player2Name" type="text" placeholder="שם השחקן השני">
+            <button onclick="addPlayers()">הוסיפו שחקנים</button>
+        </div>
+    </div>
+
+    <div id="gameSelection">
+        <button onclick="startMemoryGame()">משחק זיכרון</button>
+        <button onclick="startDobbleGame()">המילה הכפולה</button>
+    </div>
+
+    <div id="gameContainer" style="display:none;">
+        <div id="gameInstructions"></div>
+        <div id="currentPlayer"></div>
+        <div id="gameArea"></div>
+        <div id="playerButtons"></div>
+        <div id="scoreBoard"></div>
+        <button onclick="backToMenu()">חזרה לתפריט</button>
+    </div>
+
+    <div id="summaryScreen" style="display:none;">
+        <h2>כל הכבוד!</h2>
+        <p>המשחק הסתיים</p>
+        <img id="trophy" src="https://cdn-icons-png.flaticon.com/512/3176/3176276.png" alt="גביע">
+        <div id="winnerName"></div>
+        <button onclick="playAgain()">שחקו שוב</button>
+    </div>
+
+    <footer>
+        כל הזכויות שמורות למור קנדי
+    </footer>
+
+    <script>
+        let words = [];
+        let players = [];
+        let currentGame = '';
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let currentPlayerIndex = 0;
+        let isProcessing = false;
+        const colors = ['#4682B4', '#8A2BE2', '#DB7093', '#4B0082'];
+
+        function playCorrectSound() {
+            let audio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3');
+            audio.play();
+        }
+
+        function playApplauseSound() {
+            let audio = new Audio('https://actions.google.com/sounds/v1/applause/medium_crowd_applause.ogg');
+            audio.play().catch(e => console.log("Error playing sound:", e));
+        }
+
+        function saveWords() {
+            words = document.getElementById('wordInput').value.split(',').map(word => word.trim());
+            if (words.length < 8) {
+                alert('נא להכניס לפחות 8 מילים');
+                return;
+            }
+            alert('המילים נשמרו בהצלחה!');
+        }
+
+        function addPlayers() {
+            let player1Name = document.getElementById('player1Name').value;
+            let player2Name = document.getElementById('player2Name').value;
+            if (player1Name && player2Name) {
+                players = [
+                    { name: player1Name, score: 0 },
+                    { name: player2Name, score: 0 }
+                ];
+                alert('השחקנים נוספו בהצלחה!');
+            } else {
+                alert('נא להזין שמות לשני השחקנים');
+            }
+        }
+
+        function startMemoryGame() {
+            if (words.length < 8) {
+                alert('נא להכניס לפחות 8 מילים לפני תחילת המשחק');
+                return;
+            }
+            if (players.length < 2) {
+                alert('נא להוסיף שני שחקנים לפני תחילת המשחק');
+                return;
+            }
+            currentGame = 'memory';
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('gameSelection').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('gameInstructions').innerHTML = '<h3>הוראות משחק הזיכרון:</h3><p>לחצו על הקלפים כדי לחשוף אותם. מצאו זוגות של מילים זהות. השחקן שמוצא זוג מקבל נקודה ותור נוסף.</p>';
+            updateCurrentPlayer();
+            updateScoreBoard();
+            setupMemoryGame();
+        }
+
+        function startDobbleGame() {
+            if (words.length < 8) {
+                alert('נא להכניס לפחות 8 מילים לפני תחילת המשחק');
+                return;
+            }
+            if (players.length < 2) {
+                alert('נא להוסיף שני שחקנים לפני תחילת המשחק');
+                return;
+            }
+            currentGame = 'dobble';
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('gameSelection').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('gameInstructions').innerHTML = '<h3>הוראות משחק המילה הכפולה:</h3><p>מצאו את המילה שמופיעה פעמיים על הלוח. כשמצאתם את המילה הכפולה, לחצו על שמכם כדי לקבל נקודה. המנצח הוא השחקן הראשון שצובר 8 נקודות.</p>';
+            document.getElementById('currentPlayer').style.display = 'none';
+            updateScoreBoard();
+            setupDobbleGame();
+        }
+
+        function setupMemoryGame() {
+            let gameArea = document.getElementById('gameArea');
+            gameArea.innerHTML = '';
+            document.getElementById('playerButtons').innerHTML = '';
+            flippedCards = [];
+            matchedPairs = 0;
+            let shuffledWords = [...words, ...words].sort(() => Math.random() - 0.5);
+            shuffledWords.forEach((word, index) => {
+                let card = document.createElement('div');
+                card.className = 'word';
+                card.textContent = '?';
+                card.dataset.word = word;
+                card.style.backgroundColor = colors[index % colors.length];
+                card.onclick = () => flipCard(card);
+                gameArea.appendChild(card);
+            });
+        }
+
+        function setupDobbleGame() {
+            let gameArea = document.getElementById('gameArea');
+            gameArea.innerHTML = '';
+            let roundWords = [...words];
+            let duplicateWord = roundWords[Math.floor(Math.random() * roundWords.length)];
+            roundWords.push(duplicateWord);
+            roundWords.sort(() => Math.random() - 0.5);
+            roundWords.forEach((word, index) => {
+                let button = document.createElement('div');
+                button.textContent = word;
+                button.className = 'word';
+                button.style.backgroundColor = colors[index % colors.length];
+                button.onclick = () => checkDobbleWord(button, word, duplicateWord);
+                gameArea.appendChild(button);
+            });
+
+            let playerButtonsContainer = document.getElementById('playerButtons');
+            playerButtonsContainer.innerHTML = '';
+            players.forEach((player, index) => {
+                let playerButton = document.createElement('button');
+                playerButton.textContent = player.name;
+                playerButton.onclick = () => addPointDobble(index);
+                playerButtonsContainer.appendChild(playerButton);
+            });
+        }
+
+        function flipCard(card) {
+            if (isProcessing || flippedCards.length >= 2 || flippedCards.includes(card) || card.classList.contains('matched')) {
+                return;
+            }
+
+            card.textContent = card.dataset.word;
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                isProcessing = true;
+                setTimeout(checkForMatch, 1000);
+            }
+        }
+
+        function checkForMatch() {
+            let [card1, card2] = flippedCards;
+            if (card1.dataset.word === card2.dataset.word) {
+                card1.classList.add('matched', 'correct', 'blink');
+                card2.classList.add('matched', 'correct', 'blink');
+                matchedPairs++;
+                players[currentPlayerIndex].score++;
+                updateScoreBoard();
+                playApplauseSound();
+                setTimeout(() => {
+                    card1.style.visibility = 'hidden';
+                    card2.style.visibility = 'hidden';
+                    isProcessing = false;
+                }, 1500);
+                if (matchedPairs === words.length) {
+                    setTimeout(showSummaryScreen, 1500);
+                }
+            } else {
+                card1.classList.add('incorrect');
+                card2.classList.add('incorrect');
+                setTimeout(() => {
+                    card1.textContent = '?';
+                    card2.textContent = '?';
+                    card1.classList.remove('incorrect');
+                    card2.classList.remove('incorrect');
+                    currentPlayerIndex = 1 - currentPlayerIndex;
+                    updateCurrentPlayer();
+                    isProcessing = false;
+                }, 1000);
+            }
+            flippedCards = [];
+        }
+
+        function checkDobbleWord(button, word, duplicateWord) {
+            if (word === duplicateWord) {
+                button.classList.add('correct', 'blink');
+                playCorrectSound();
+                setTimeout(() => {
+                    button.classList.remove('blink');
+                    alert(`המילה הכפולה נמצאה! לחצו על שמכם כדי לקבל נקודה.`);
+                }, 1500);
+            } else {
+                button.classList.add('incorrect');
+                setTimeout(() => button.classList.remove('incorrect'), 1000);
+            }
+        }
+
+        function addPointDobble(playerIndex) {
+            if (document.querySelector('.word.correct')) {
+                players[playerIndex].score++;
+                updateScoreBoard();
+                if (players[playerIndex].score >= 8) {
+                    showSummaryScreen();
+                } else {
+                    setupDobbleGame();
+                }
+            } else {
+                alert('יש למצוא את המילה הכפולה לפני הוספת נקודה.');
+            }
+        }
+
+        function updateCurrentPlayer() {
+            document.getElementById('currentPlayer').innerHTML = `<span style="color: ${colors[currentPlayerIndex]}">תור ${players[currentPlayerIndex].name}</span>`;
+            document.getElementById('currentPlayer').style.display = 'block';
+        }
+
+        function updateScoreBoard() {
+            document.getElementById('scoreBoard').innerHTML = players.map((player, index) => 
+                `<span style="color: ${colors[index]}">${player.name}: ${player.score} נקודות</span>`
+            ).join(' | ');
+        }
+
+        function showSummaryScreen() {
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('summaryScreen').style.display = 'block';
+            let winner = players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+            document.getElementById('winnerName').textContent = winner.name;
+        }
+
+        function playAgain() {
+            document.getElementById('summaryScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            players.forEach(player => player.score = 0);
+            currentPlayerIndex = 0;
+            if (currentGame === 'memory') {
+                setupMemoryGame();
+                updateCurrentPlayer();
+            } else if (currentGame === 'dobble') {
+                setupDobbleGame();
+                } else if (currentGame === 'dobble') {
+                setupDobbleGame();
+            }
+            updateScoreBoard();
+        }
+
+        function backToMenu() {
+            document.getElementById('setup').style.display = 'block';
+            document.getElementById('gameSelection').style.display = 'block';
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('summaryScreen').style.display = 'none';
+            players.forEach(player => player.score = 0);
+            currentGame = '';
+            updateScoreBoard();
+        }
+    </script>
+</body>
+</html>
