@@ -1,0 +1,16 @@
+{
+  "name": "שלט אלקטרה",
+  "short_name": "אלקטרה",
+  "description": "שלט רחוק למזגן אלקטרה: מקומי, Electra Smart או Webhook",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e6ecf2",
+  "theme_color": "#0f6fb5",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

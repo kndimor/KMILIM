@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f6fb5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>שלט אלקטרה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: one narrow column, a handset-shaped remote with an LCD on top and a button deck below; settings live in a drawer under it. */
+:root {
+  --bg: #e6ecf2;
+  --fg: #16212b;
+  --muted: #5f6f7e;
+  --shell: #f7f9fb;
+  --shell-edge: #cfd8e1;
+  --key: #ffffff;
+  --key-edge: #c8d2dc;
+  --key-fg: #1d2b38;
+  --key-on: #0f6fb5;
+  --key-on-fg: #ffffff;
+  --lcd: #c8d7c4;
+  --lcd-fg: #17261c;
+  --lcd-dim: rgba(23, 38, 28, .28);
+  --lcd-off: #a9b5a6;
+  --cool: #0f6fb5;
+  --heat: #d9612b;
+  --dry: #1c8b8a;
+  --fan: #5c7385;
+  --ok: #1f8f4e;
+  --warn: #b7791f;
+  --bad: #c43d3d;
+  --font-ui: "Heebo", "Segoe UI", Arial, sans-serif;
+  --font-lcd: "Share Tech Mono", "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --fg: #e6edf3; --muted: #93a3b3;
+    --shell: #1a2129; --shell-edge: #2c3743;
+    --key: #232d38; --key-edge: #364453; --key-fg: #e6edf3;
+    --key-on: #2f8fd8; --key-on-fg: #ffffff;
+    --lcd: #b9cbb5; --lcd-fg: #13201a; --lcd-dim: rgba(19, 32, 26, .3); --lcd-off: #7f8c7c;
+    --cool: #4aa3e8; --heat: #f0824e; --dry: #3cb3b1; --fan: #8fa6b8;
+    --ok: #3fbf74; --warn: #e0a545; --bad: #ef6a6a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --fg: #e6edf3; --muted: #93a3b3;
+  --shell: #1a2129; --shell-edge: #2c3743;
+  --key: #232d38; --key-edge: #364453; --key-fg: #e6edf3;
+  --key-on: #2f8fd8; --key-on-fg: #ffffff;
+  --lcd: #b9cbb5; --lcd-fg: #13201a; --lcd-dim: rgba(19, 32, 26, .3); --lcd-off: #7f8c7c;
+  --cool: #4aa3e8; --heat: #f0824e; --dry: #3cb3b1; --fan: #8fa6b8;
+  --ok: #3fbf74; --warn: #e0a545; --bad: #ef6a6a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-inline: 16px;
+  padding-block: 12px 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 420px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.top h1 { font-size: 18px; font-weight: 900; margin: 0; letter-spacing: -.01em; }
+.top h1 small { font-weight: 500; color: var(--muted); font-size: 12px; margin-inline-start: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  border: 1px solid var(--shell-edge); border-radius: 999px; padding: 4px 10px; background: var(--shell);
+}
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.chip[data-state="ok"] .dot { background: var(--ok); }
+.chip[data-state="warn"] .dot { background: var(--warn); }
+.chip[data-state="bad"] .dot { background: var(--bad); }
+.iconbtn {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--shell-edge); background: var(--shell);
+  display: inline-grid; place-items: center; cursor: pointer;
+}
+.iconbtn svg { width: 20px; height: 20px; }
+
+/* Remote shell */
+.remote {
+  background: var(--shell);
+  border: 1px solid var(--shell-edge);
+  border-radius: 34px;
+  padding: 18px 16px 22px;
+  box-shadow: 0 18px 40px rgba(10, 30, 50, .14), inset 0 1px 0 rgba(255,255,255,.4);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.brand {
+  display: flex; justify-content: space-between; align-items: baseline; padding-inline: 6px;
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 700;
+}
+
+/* LCD */
+.lcd {
+  background: var(--lcd); color: var(--lcd-fg);
+  border-radius: 14px; padding: 14px 16px 12px;
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.28), inset 0 -1px 0 rgba(255,255,255,.35);
+  font-family: var(--font-lcd); font-variant-numeric: tabular-nums;
+  direction: ltr; text-align: left;
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap: 4px 10px;
+  min-height: 150px; position: relative; transition: filter .3s;
+}
+.lcd.off { color: var(--lcd-off); filter: saturate(.6); }
+.lcd .row1 { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .06em; }
+.lcd .seg { opacity: .22; }
+.lcd .seg.lit { opacity: 1; }
+.lcd .big { display: flex; align-items: flex-end; gap: 6px; line-height: 1; }
+.lcd .big .num { font-size: 68px; letter-spacing: -.02em; }
+.lcd .big .unit { font-size: 22px; padding-bottom: 8px; }
+.lcd .big .label { font-size: 11px; align-self: flex-start; padding-top: 6px; letter-spacing: .08em; }
+.lcd .side { display: grid; align-content: end; justify-items: end; gap: 6px; font-size: 12px; letter-spacing: .06em; }
+.lcd .fanbars { display: inline-flex; gap: 3px; align-items: flex-end; height: 16px; }
+.lcd .fanbars i { display: block; width: 6px; background: currentColor; opacity: .22; border-radius: 1px; }
+.lcd .fanbars i:nth-child(1) { height: 6px; } .lcd .fanbars i:nth-child(2) { height: 10px; } .lcd .fanbars i:nth-child(3) { height: 14px; }
+.lcd .fanbars i.lit { opacity: 1; }
+.lcd .row3 { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .06em; }
+.lcd .mode { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.lcd .mode svg { width: 16px; height: 16px; }
+.lcd .flags { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.lcd .flags span { font-size: 10.5px; }
+
+/* Keys */
+.deck { display: grid; gap: 12px; }
+.mainrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+.key {
+  background: var(--key); color: var(--key-fg);
+  border: 1px solid var(--key-edge); border-radius: 18px;
+  min-height: 56px; padding: 8px 6px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  box-shadow: 0 2px 0 var(--key-edge);
+  transition: transform .06s, box-shadow .06s, background .15s, color .15s;
+  user-select: none; touch-action: manipulation;
+}
+.key:active { transform: translateY(2px); box-shadow: 0 0 0 var(--key-edge); }
+.key:focus-visible { outline: 3px solid var(--key-on); outline-offset: 2px; }
+.key svg { width: 22px; height: 22px; }
+.key .t { font-size: 12.5px; font-weight: 700; }
+.key .s { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+.key.on { background: var(--key-on); color: var(--key-on-fg); border-color: transparent; box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.key.on .s { color: rgba(255,255,255,.8); }
+.key.power {
+  width: 86px; height: 86px; border-radius: 50%; margin-inline: auto;
+  background: var(--bad); color: #fff; border-color: transparent; box-shadow: 0 4px 0 rgba(0,0,0,.25);
+  font-weight: 900; font-size: 12px;
+}
+.key.power.on { background: var(--ok); }
+.key.power svg { width: 30px; height: 30px; }
+.key.temp { min-height: 74px; font-size: 30px; font-weight: 900; border-radius: 22px; }
+.key.temp .s { font-size: 11px; font-weight: 700; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.key[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Sections */
+.card { background: var(--shell); border: 1px solid var(--shell-edge); border-radius: 18px; padding: 14px 16px; }
+.card h2 { font-size: 14px; margin: 0 0 10px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.card h2 .chip { font-weight: 500; }
+details.card > summary { cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::after { content: "▾"; color: var(--muted); transition: transform .2s; }
+details.card[open] > summary::after { transform: rotate(180deg); }
+details.card[open] > summary { margin-bottom: 12px; }
+.field { display: grid; gap: 4px; margin-bottom: 10px; }
+.field label { font-size: 12.5px; font-weight: 700; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input, .field select {
+  font: inherit; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--key-edge);
+  background: var(--key); color: var(--key-fg); width: 100%; min-width: 0;
+}
+.field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--key-on); outline-offset: 1px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn {
+  padding: 9px 14px; border-radius: 10px; border: 1px solid var(--key-edge); background: var(--key); cursor: pointer; font-weight: 700; font-size: 13.5px;
+}
+.btn.primary { background: var(--key-on); color: var(--key-on-fg); border-color: transparent; }
+.btn.danger { color: var(--bad); }
+.btn:focus-visible { outline: 3px solid var(--key-on); outline-offset: 2px; }
+.seg-ctl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg-ctl button { padding: 9px 6px; border-radius: 10px; border: 1px solid var(--key-edge); background: var(--key); cursor: pointer; font-weight: 700; font-size: 13px; }
+.seg-ctl button.on { background: var(--key-on); color: var(--key-on-fg); border-color: transparent; }
+.pane[hidden] { display: none; }
+.log { font-family: var(--font-lcd); font-size: 12px; color: var(--muted); max-height: 150px; overflow: auto; margin: 0; padding: 0; list-style: none; direction: ltr; text-align: left; }
+.log li { padding: 3px 0; border-bottom: 1px dashed var(--shell-edge); white-space: pre-wrap; word-break: break-word; }
+.log li b { color: var(--fg); font-weight: 400; }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--key); border: 1px solid var(--key-edge); margin-top: 8px; }
+.msg.ok { border-color: var(--ok); } .msg.bad { border-color: var(--bad); color: var(--bad); }
+code { font-family: var(--font-lcd); font-size: 12.5px; background: var(--key); padding: 1px 5px; border-radius: 5px; direction: ltr; unicode-bidi: embed; }
+pre { font-family: var(--font-lcd); font-size: 12px; background: var(--key); border: 1px solid var(--key-edge); border-radius: 10px; padding: 10px; overflow-x: auto; direction: ltr; text-align: left; margin: 8px 0 0; }
+.toast {
+  position: fixed; inset-inline: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); margin-inline: auto; max-width: 388px;
+  background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 12px; font-size: 13.5px; font-weight: 500;
+  opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; text-align: center; z-index: 9;
+}
+.toast.show { opacity: 1; transform: none; }
+.devlist { display: grid; gap: 6px; margin-top: 8px; }
+.devlist button { text-align: start; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--key-edge); background: var(--key); cursor: pointer; }
+.devlist button.on { border-color: var(--key-on); box-shadow: inset 0 0 0 1px var(--key-on); }
+.devlist small { color: var(--muted); display: block; font-size: 11.5px; }
+.tiny { font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 360px) { .lcd .big .num { font-size: 56px; } .key.temp { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>שלט אלקטרה <small>Electra</small></h1>
+    <div class="row" style="gap:6px">
+      <span class="chip" id="connChip" data-state="warn"><span class="dot"></span><span id="connText">מקומי</span></span>
+      <button class="iconbtn" id="settingsBtn" aria-label="הגדרות" title="הגדרות">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="remote" aria-label="שלט רחוק">
+    <div class="brand"><span>Electra</span><span id="brandRight">Remote</span></div>
+
+    <section class="lcd off" id="lcd" aria-live="polite">
+      <div class="row1">
+        <span id="lcdClock">--:--</span>
+        <span><span class="seg" id="segWifi">WIFI</span> <span class="seg" id="segTimer">TIMER</span> <span class="seg" id="segShabbat">SHABBAT</span></span>
+      </div>
+      <div class="big">
+        <span class="num" id="lcdTemp">--</span>
+        <span class="unit">°C</span>
+        <span class="label" id="lcdTempLabel">SET</span>
+      </div>
+      <div class="side">
+        <span>ROOM <b id="lcdRoom">--</b>°</span>
+        <span>FAN <span class="fanbars" id="fanBars"><i></i><i></i><i></i></span> <span id="fanText">AUTO</span></span>
+        <span id="lcdTimerText" class="seg">TIMER --</span>
+      </div>
+      <div class="row3">
+        <span class="mode" id="lcdMode"></span>
+        <span class="flags">
+          <span class="seg" id="segSwing">SWING</span>
+          <span class="seg" id="segTurbo">TURBO</span>
+          <span class="seg" id="segSleep">SLEEP</span>
+          <span class="seg" id="segIfeel">I FEEL</span>
+        </span>
+      </div>
+    </section>
+
+    <div class="deck">
+      <div class="mainrow">
+        <button class="key temp" id="tempUp" aria-label="העלאת טמפרטורה">+<span class="s">TEMP</span></button>
+        <button class="key power" id="powerBtn" aria-pressed="false" aria-label="הדלקה / כיבוי">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/><path d="M12 2v10"/></svg>
+          ON/OFF
+        </button>
+        <button class="key temp" id="tempDown" aria-label="הורדת טמפרטורה">−<span class="s">TEMP</span></button>
+      </div>
+
+      <div class="grid">
+        <button class="key" id="modeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16M12 4v16M6 6l12 12M18 6L6 18"/></svg><span class="t">MODE</span><span class="s" id="modeSub">קירור</span></button>
+        <button class="key" id="fanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M12 10c0-4-2-7 2-7s3 3 0 7M14 12c4 0 7-2 7 2s-3 3-7 0M12 14c0 4 2 7-2 7s-3-3 0-7M10 12c-4 0-7 2-7-2s3-3 7 0"/></svg><span class="t">FAN</span><span class="s" id="fanSub">אוטומטי</span></button>
+        <button class="key" id="swingBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M16 3l3 3-3 3M16 15l3 3-3 3"/></svg><span class="t">SWING</span><span class="s">תריס</span></button>
+      </div>
+
+      <div class="grid4">
+        <button class="key" id="turboBtn"><span class="t">TURBO</span><span class="s">טורבו</span></button>
+        <button class="key" id="sleepBtn"><span class="t">SLEEP</span><span class="s">שינה</span></button>
+        <button class="key" id="ifeelBtn"><span class="t">I FEEL</span><span class="s">חישה</span></button>
+        <button class="key" id="timerBtn"><span class="t">TIMER</span><span class="s" id="timerSub">כבוי</span></button>
+      </div>
+
+      <div class="grid">
+        <button class="key" id="shabbatBtn"><span class="t">שבת</span><span class="s">מצב שבת</span></button>
+        <button class="key" id="refreshBtn"><span class="t">SYNC</span><span class="s">רענון מצב</span></button>
+        <button class="key" id="resendBtn"><span class="t">SEND</span><span class="s">שליחה חוזרת</span></button>
+      </div>
+    </div>
+  </main>
+
+  <details class="card" id="settings">
+    <summary>הגדרות וחיבור <span class="chip" id="connChip2"><span class="dot"></span><span id="connText2">מקומי</span></span></summary>
+
+    <div class="field">
+      <label>איך השלט מדבר עם המזגן?</label>
+      <div class="seg-ctl" id="connMode">
+        <button data-v="local">הדגמה מקומית</button>
+        <button data-v="cloud">Electra Smart</button>
+        <button data-v="webhook">Webhook / IR</button>
+      </div>
+    </div>
+
+    <div class="pane" id="paneLocal">
+      <p class="tiny">השלט עובד לבד: המצב נשמר במכשיר הזה, הטיימר סופר באמת, אבל שום פקודה לא יוצאת החוצה. מתאים לניסיון ולעיצוב.</p>
+    </div>
+
+    <div class="pane" id="paneCloud" hidden>
+      <p class="tiny">למזגן עם מודול Wi‑Fi של Electra Smart. צריך להריץ את השרת המצורף (<code>node server.js</code>) ולהתחבר עם הטלפון שרשום באפליקציית אלקטרה.</p>
+      <div class="field">
+        <label for="proxyUrl">כתובת השרת</label>
+        <input id="proxyUrl" placeholder="http://192.168.1.20:8787" dir="ltr" inputmode="url" autocomplete="off">
+        <span class="hint">ריק = אותה כתובת שממנה נטען הדף.</span>
+      </div>
+      <div id="cloudLogin">
+        <div class="field">
+          <label for="phone">מספר טלפון</label>
+          <input id="phone" placeholder="0501234567" dir="ltr" inputmode="tel" autocomplete="tel">
+        </div>
+        <div class="row">
+          <button class="btn" id="sendOtpBtn">שלח קוד ב‑SMS</button>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label for="otp">קוד אימות</label>
+          <input id="otp" placeholder="1234" dir="ltr" inputmode="numeric" autocomplete="one-time-code">
+        </div>
+        <div class="row">
+          <button class="btn primary" id="verifyOtpBtn">התחבר</button>
+        </div>
+      </div>
+      <div id="cloudLogged" hidden>
+        <div class="row" style="justify-content:space-between">
+          <span class="tiny">מחובר כ‑<b id="loggedPhone"></b></span>
+          <button class="btn danger" id="logoutBtn">התנתק</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="loadDevicesBtn">טען מזגנים</button>
+        </div>
+        <div class="devlist" id="devList"></div>
+      </div>
+      <div id="cloudMsg"></div>
+    </div>
+
+    <div class="pane" id="paneWebhook" hidden>
+      <p class="tiny">כל לחיצה שולחת POST עם מצב השלט המלא ל‑URL שתגדיר. מתאים ל‑Home Assistant, ESPHome, Tasmota‑IR או Broadlink דרך שרת קטן.</p>
+      <div class="field">
+        <label for="webhookUrl">כתובת ה‑Webhook</label>
+        <input id="webhookUrl" placeholder="http://homeassistant.local:8123/api/webhook/electra" dir="ltr" inputmode="url" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="webhookToken">Bearer token (לא חובה)</label>
+        <input id="webhookToken" placeholder="" dir="ltr" autocomplete="off">
+      </div>
+      <details>
+        <summary class="tiny">מבנה ה‑JSON שנשלח</summary>
+<pre id="webhookSample">{
+  "source": "electra-remote",
+  "power": true,
+  "mode": "cool",
+  "temp": 24,
+  "fan": "auto",
+  "swing": false,
+  "turbo": false,
+  "sleep": false,
+  "ifeel": false,
+  "shabbat": false,
+  "timerHours": 0,
+  "electra": { "OPER": { "AC_MODE": "COOL", "SPT": "24", "FANSPD": "AUTO", ... } }
+}</pre>
+      </details>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="testWebhookBtn">שלח בדיקה</button>
+      </div>
+      <div id="webhookMsg"></div>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label>מראה</label>
+      <div class="seg-ctl" id="themeCtl">
+        <button data-v="">לפי המערכת</button>
+        <button data-v="light">בהיר</button>
+        <button data-v="dark">כהה</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn" id="installBtn" hidden>התקן כאפליקציה</button>
+      <button class="btn danger" id="resetBtn">איפוס השלט</button>
+    </div>
+  </details>
+
+  <section class="card">
+    <h2>יומן פקודות <button class="btn" id="clearLogBtn" style="padding:4px 10px;font-size:12px">נקה</button></h2>
+    <ul class="log" id="log"></ul>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+
+/* ---------- constants (Electra Smart vocabulary) ---------- */
+const MODES = ['cool', 'heat', 'dry', 'fan', 'auto'];
+const MODE_INFO = {
+  cool: { he: 'קירור', en: 'COOL', ac: 'COOL', color: 'var(--cool)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M4 7l16 10M4 17L20 7M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3"/></svg>' },
+  heat: { he: 'חימום', en: 'HEAT', ac: 'HEAT', color: 'var(--heat)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>' },
+  dry: { he: 'ייבוש', en: 'DRY', ac: 'DRY', color: 'var(--dry)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>' },
+  fan: { he: 'אוורור', en: 'FAN', ac: 'FAN', color: 'var(--fan)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M12 10c0-4-2-7 2-7s3 3 0 7M14 12c4 0 7-2 7 2s-3 3-7 0M12 14c0 4 2 7-2 7s-3-3 0-7M10 12c-4 0-7 2-7-2s3-3 7 0"/></svg>' },
+  auto: { he: 'אוטומטי', en: 'AUTO', ac: 'AUTO', color: 'var(--fg)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20L12 4l7 16M8 14h8"/></svg>' },
+};
+const FANS = ['auto', 'low', 'med', 'high'];
+const FAN_INFO = { auto: { he: 'אוטומטי', en: 'AUTO', ac: 'AUTO', bars: 0 }, low: { he: 'נמוך', en: 'LOW', ac: 'LOW', bars: 1 }, med: { he: 'בינוני', en: 'MED', ac: 'MED', bars: 2 }, high: { he: 'גבוה', en: 'HIGH', ac: 'HIGH', bars: 3 } };
+const TIMER_STEPS = [0, 0.5, 1, 2, 3, 4, 6, 8, 12];
+const TEMP_MIN = 16, TEMP_MAX = 30;
+
+/* ---------- state ---------- */
+const DEFAULT_STATE = { power: false, mode: 'cool', temp: 24, fan: 'auto', swing: false, turbo: false, sleep: false, ifeel: false, shabbat: false, timerHours: 0, timerEnd: 0, room: null };
+const DEFAULT_CONN = { mode: 'local', proxy: '', phone: '', imei: '', token: '', sid: '', deviceId: '', deviceName: '', webhookUrl: '', webhookToken: '', theme: '' };
+let state = load('electra.state', DEFAULT_STATE);
+let conn = load('electra.conn', DEFAULT_CONN);
+let logItems = load('electra.log', []);
+let lastPayload = null;
+let pollTimer = null;
+let sendTimer = null;
+let installPrompt = null;
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? Object.assign({}, fallback, JSON.parse(v)) : structuredClone(fallback); }
+  catch { return structuredClone(fallback); }
+}
+function save() {
+  try {
+    localStorage.setItem('electra.state', JSON.stringify(state));
+    localStorage.setItem('electra.conn', JSON.stringify(conn));
+    localStorage.setItem('electra.log', JSON.stringify(logItems.slice(0, 60)));
+  } catch {}
+}
+
+/* ---------- helpers ---------- */
+function toast(msg, ms = 1800) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function buzz() { try { navigator.vibrate && navigator.vibrate(12); } catch {} }
+function pad(n) { return String(n).padStart(2, '0'); }
+function log(kind, text) {
+  const d = new Date();
+  logItems.unshift(`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${kind} ${text}`);
+  logItems = logItems.slice(0, 60);
+  renderLog(); save();
+}
+function renderLog() {
+  const ul = $('log'); ul.innerHTML = '';
+  if (!logItems.length) { ul.innerHTML = '<li class="tiny">עדיין לא נשלחו פקודות.</li>'; return; }
+  for (const line of logItems) {
+    const li = document.createElement('li');
+    const sp = line.indexOf(' ');
+    const b = document.createElement('b'); b.textContent = line.slice(0, sp);
+    li.append(b, ' ' + line.slice(sp + 1)); ul.appendChild(li);
+  }
+}
+function setMsg(id, text, cls) {
+  const el = $(id); el.innerHTML = '';
+  if (!text) return;
+  const d = document.createElement('div'); d.className = 'msg ' + (cls || ''); d.textContent = text; el.appendChild(d);
+}
+
+/* ---------- Electra OPER payload ---------- */
+function toElectraOper(s) {
+  const onoff = (b) => (b ? 'ON' : 'OFF');
+  return {
+    AC_MODE: s.power ? MODE_INFO[s.mode].ac : 'STBY',
+    SPT: String(s.temp),
+    FANSPD: FAN_INFO[s.fan].ac,
+    VSWING: onoff(s.swing),
+    HSWING: 'OFF',
+    TURBO_MODE: onoff(s.turbo),
+    SLEEP: onoff(s.sleep),
+    IFEEL: onoff(s.ifeel),
+    SHABAT: onoff(s.shabbat),
+    TIMER: onoff(s.timerHours > 0),
+  };
+}
+function fromElectraOper(oper, diag) {
+  if (!oper) return;
+  const m = String(oper.AC_MODE || '').toUpperCase();
+  const mode = MODES.find((k) => MODE_INFO[k].ac === m);
+  state.power = !!mode && m !== 'STBY';
+  if (mode) state.mode = mode;
+  const t = parseInt(oper.SPT, 10); if (!isNaN(t)) state.temp = Math.min(TEMP_MAX, Math.max(TEMP_MIN, t));
+  const f = FANS.find((k) => FAN_INFO[k].ac === String(oper.FANSPD || '').toUpperCase()); if (f) state.fan = f;
+  state.swing = oper.VSWING === 'ON';
+  state.turbo = oper.TURBO_MODE === 'ON';
+  state.sleep = oper.SLEEP === 'ON';
+  state.ifeel = oper.IFEEL === 'ON';
+  state.shabbat = oper.SHABAT === 'ON';
+  if (diag) {
+    const r = parseFloat(diag.I_CALC_AT ?? diag.I_RAT);
+    if (!isNaN(r)) state.room = Math.round(r);
+  }
+}
+function buildPayload() {
+  return {
+    source: 'electra-remote', sentAt: new Date().toISOString(),
+    power: state.power, mode: state.mode, temp: state.temp, fan: state.fan,
+    swing: state.swing, turbo: state.turbo, sleep: state.sleep, ifeel: state.ifeel, shabbat: state.shabbat,
+    timerHours: state.timerHours,
+    electra: { OPER: toElectraOper(state) },
+  };
+}
+
+/* ---------- sending ---------- */
+function queueSend(reason) {
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(() => send(reason), 450);
+}
+async function send(reason) {
+  const payload = buildPayload();
+  lastPayload = payload;
+  const summary = `${payload.power ? MODE_INFO[payload.mode].en : 'OFF'} ${payload.temp}° ${FAN_INFO[payload.fan].en}${payload.swing ? ' SWING' : ''}${payload.turbo ? ' TURBO' : ''}${payload.sleep ? ' SLEEP' : ''}${payload.ifeel ? ' IFEEL' : ''}${payload.shabbat ? ' SHABBAT' : ''}${payload.timerHours ? ' T' + payload.timerHours + 'h' : ''}`;
+  try {
+    if (conn.mode === 'local') {
+      log('LOCAL', summary);
+      setConn('warn', 'מקומי');
+    } else if (conn.mode === 'webhook') {
+      if (!conn.webhookUrl) { log('SKIP', 'לא הוגדר Webhook'); setConn('bad', 'Webhook חסר'); return; }
+      const r = await fetch(conn.webhookUrl, { method: 'POST', headers: hdrs({ 'Content-Type': 'application/json' }, conn.webhookToken), body: JSON.stringify(payload) });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      log('WEBHOOK', summary); setConn('ok', 'Webhook');
+    } else if (conn.mode === 'cloud') {
+      if (!conn.token || !conn.deviceId) { log('SKIP', 'לא נבחר מזגן'); setConn('bad', 'לא מחובר'); return; }
+      await api('POST', `/api/devices/${encodeURIComponent(conn.deviceId)}/command`, { oper: payload.electra.OPER });
+      log('CLOUD', summary); setConn('ok', conn.deviceName || 'Electra Smart');
+      setTimeout(refreshTelemetry, 2500);
+    }
+  } catch (e) {
+    log('ERROR', (e && e.message) || String(e));
+    setConn('bad', 'שגיאת שליחה');
+    toast('השליחה נכשלה: ' + ((e && e.message) || e), 3000);
+  }
+}
+function hdrs(base, token) { if (token) base.Authorization = 'Bearer ' + token; return base; }
+function proxyBase() { return (conn.proxy || '').replace(/\/+$/, ''); }
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (conn.token) headers['X-Electra-Token'] = conn.token;
+  if (conn.imei) headers['X-Electra-Imei'] = conn.imei;
+  if (conn.sid) headers['X-Electra-Sid'] = conn.sid;
+  const r = await fetch(proxyBase() + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  let j = null; try { j = await r.json(); } catch {}
+  if (!r.ok || !j || j.ok === false) throw new Error((j && j.error) || ('HTTP ' + r.status));
+  if (j.sid && j.sid !== conn.sid) { conn.sid = j.sid; save(); }
+  return j;
+}
+async function refreshTelemetry() {
+  if (conn.mode !== 'cloud' || !conn.token || !conn.deviceId) return;
+  try {
+    const j = await api('GET', `/api/devices/${encodeURIComponent(conn.deviceId)}/state`);
+    fromElectraOper(j.oper, j.diag);
+    save(); render(); setConn('ok', conn.deviceName || 'Electra Smart');
+  } catch (e) { setConn('bad', 'אין תקשורת'); log('ERROR', 'טלמטריה: ' + e.message); }
+}
+function schedulePolling() {
+  clearInterval(pollTimer);
+  if (conn.mode === 'cloud' && conn.token && conn.deviceId) {
+    refreshTelemetry();
+    pollTimer = setInterval(() => { if (document.visibilityState === 'visible') refreshTelemetry(); }, 30000);
+  }
+}
+function setConn(stateName, text) {
+  for (const [c, t] of [['connChip', 'connText'], ['connChip2', 'connText2']]) { $(c).dataset.state = stateName; $(t).textContent = text; }
+}
+
+/* ---------- timer ---------- */
+function tickTimer() {
+  if (state.timerHours > 0 && state.timerEnd && Date.now() >= state.timerEnd) {
+    state.timerHours = 0; state.timerEnd = 0;
+    state.power = !state.power;
+    log('TIMER', state.power ? 'הפעלה לפי טיימר' : 'כיבוי לפי טיימר');
+    toast(state.power ? 'הטיימר הדליק את המזגן' : 'הטיימר כיבה את המזגן');
+    save(); render(); send('timer');
+  }
+}
+
+/* ---------- render ---------- */
+function render() {
+  const lcd = $('lcd');
+  lcd.classList.toggle('off', !state.power);
+  $('lcdTemp').textContent = state.power ? state.temp : '--';
+  $('lcdRoom').textContent = state.room == null ? '--' : state.room;
+  $('lcdTempLabel').textContent = state.ifeel && state.power ? 'I FEEL' : 'SET';
+  const mi = MODE_INFO[state.mode];
+  $('lcdMode').innerHTML = state.power ? mi.svg + '<span>' + mi.en + '</span>' : '<span>STANDBY</span>';
+  $('lcdMode').style.color = state.power ? mi.color : '';
+  const fb = $('fanBars').children; const bars = FAN_INFO[state.fan].bars;
+  for (let i = 0; i < 3; i++) fb[i].classList.toggle('lit', state.power && (bars === 0 || i < bars));
+  $('fanText').textContent = FAN_INFO[state.fan].en;
+  const seg = (id, on) => $(id).classList.toggle('lit', !!on);
+  seg('segSwing', state.power && state.swing); seg('segTurbo', state.power && state.turbo);
+  seg('segSleep', state.power && state.sleep); seg('segIfeel', state.power && state.ifeel);
+  seg('segShabbat', state.shabbat); seg('segTimer', state.timerHours > 0); seg('segWifi', conn.mode === 'cloud' && !!conn.deviceId);
+  if (state.timerHours > 0 && state.timerEnd) {
+    const left = Math.max(0, state.timerEnd - Date.now()); const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
+    $('lcdTimerText').textContent = (state.power ? 'OFF IN ' : 'ON IN ') + h + ':' + pad(m); $('lcdTimerText').classList.add('lit');
+  } else { $('lcdTimerText').textContent = 'TIMER --'; $('lcdTimerText').classList.remove('lit'); }
+
+  const pb = $('powerBtn'); pb.classList.toggle('on', state.power); pb.setAttribute('aria-pressed', String(state.power));
+  $('modeSub').textContent = mi.he; $('fanSub').textContent = FAN_INFO[state.fan].he;
+  $('swingBtn').classList.toggle('on', state.swing); $('turboBtn').classList.toggle('on', state.turbo);
+  $('sleepBtn').classList.toggle('on', state.sleep); $('ifeelBtn').classList.toggle('on', state.ifeel);
+  $('shabbatBtn').classList.toggle('on', state.shabbat); $('timerBtn').classList.toggle('on', state.timerHours > 0);
+  $('timerSub').textContent = state.timerHours > 0 ? state.timerHours + ' שע׳' : 'כבוי';
+  $('modeBtn').classList.toggle('on', state.power); $('fanBtn').classList.toggle('on', state.power && state.fan !== 'auto');
+  $('tempUp').disabled = !state.power || state.temp >= TEMP_MAX || state.mode === 'fan';
+  $('tempDown').disabled = !state.power || state.temp <= TEMP_MIN || state.mode === 'fan';
+  $('brandRight').textContent = conn.mode === 'cloud' ? 'Smart' : conn.mode === 'webhook' ? 'IR' : 'Remote';
+  $('refreshBtn').disabled = conn.mode !== 'cloud';
+}
+function renderClock() {
+  const d = new Date(); $('lcdClock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function renderSettings() {
+  for (const b of $('connMode').children) b.classList.toggle('on', b.dataset.v === conn.mode);
+  $('paneLocal').hidden = conn.mode !== 'local'; $('paneCloud').hidden = conn.mode !== 'cloud'; $('paneWebhook').hidden = conn.mode !== 'webhook';
+  $('proxyUrl').value = conn.proxy; $('phone').value = conn.phone; $('webhookUrl').value = conn.webhookUrl; $('webhookToken').value = conn.webhookToken;
+  const logged = !!conn.token;
+  $('cloudLogin').hidden = logged; $('cloudLogged').hidden = !logged; $('loggedPhone').textContent = conn.phone;
+  for (const b of $('themeCtl').children) b.classList.toggle('on', b.dataset.v === (conn.theme || ''));
+  if (conn.theme) document.documentElement.dataset.theme = conn.theme; else delete document.documentElement.dataset.theme;
+}
+
+/* ---------- actions ---------- */
+function act(fn, reason) { buzz(); fn(); save(); render(); queueSend(reason); }
+
+$('powerBtn').onclick = () => act(() => { state.power = !state.power; }, 'power');
+$('tempUp').onclick = () => act(() => { state.temp = Math.min(TEMP_MAX, state.temp + 1); }, 'temp');
+$('tempDown').onclick = () => act(() => { state.temp = Math.max(TEMP_MIN, state.temp - 1); }, 'temp');
+$('modeBtn').onclick = () => act(() => { if (!state.power) { state.power = true; return; } state.mode = MODES[(MODES.indexOf(state.mode) + 1) % MODES.length]; }, 'mode');
+$('fanBtn').onclick = () => act(() => { state.fan = FANS[(FANS.indexOf(state.fan) + 1) % FANS.length]; }, 'fan');
+$('swingBtn').onclick = () => act(() => { state.swing = !state.swing; }, 'swing');
+$('turboBtn').onclick = () => act(() => { state.turbo = !state.turbo; if (state.turbo) { state.sleep = false; state.fan = 'high'; } }, 'turbo');
+$('sleepBtn').onclick = () => act(() => { state.sleep = !state.sleep; if (state.sleep) state.turbo = false; }, 'sleep');
+$('ifeelBtn').onclick = () => act(() => { state.ifeel = !state.ifeel; }, 'ifeel');
+$('shabbatBtn').onclick = () => act(() => { state.shabbat = !state.shabbat; }, 'shabbat');
+$('timerBtn').onclick = () => act(() => {
+  const i = TIMER_STEPS.indexOf(state.timerHours); const next = TIMER_STEPS[(i + 1) % TIMER_STEPS.length];
+  state.timerHours = next; state.timerEnd = next ? Date.now() + next * 3600000 : 0;
+  toast(next ? `${state.power ? 'כיבוי' : 'הדלקה'} בעוד ${next} שעות` : 'הטיימר בוטל');
+}, 'timer');
+$('refreshBtn').onclick = () => { buzz(); refreshTelemetry(); toast('מרענן מצב מהמזגן…'); };
+$('resendBtn').onclick = () => { buzz(); send('resend'); toast('נשלח שוב'); };
+$('clearLogBtn').onclick = () => { logItems = []; renderLog(); save(); };
+$('settingsBtn').onclick = () => { const s = $('settings'); s.open = !s.open; if (s.open) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, select, textarea')) return;
+  if (e.key === 'ArrowUp') { e.preventDefault(); $('tempUp').click(); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); $('tempDown').click(); }
+  if (e.key === ' ') { e.preventDefault(); $('powerBtn').click(); }
+  if (e.key.toLowerCase() === 'm') $('modeBtn').click();
+  if (e.key.toLowerCase() === 'f') $('fanBtn').click();
+});
+
+/* settings */
+$('connMode').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  conn.mode = b.dataset.v; save(); renderSettings(); render(); schedulePolling();
+  setConn(conn.mode === 'local' ? 'warn' : conn.mode === 'cloud' && conn.deviceId ? 'ok' : 'warn', conn.mode === 'local' ? 'מקומי' : conn.mode === 'cloud' ? (conn.deviceName || 'Electra Smart') : 'Webhook');
+};
+$('themeCtl').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; conn.theme = b.dataset.v; save(); renderSettings(); };
+$('proxyUrl').onchange = () => { conn.proxy = $('proxyUrl').value.trim(); save(); };
+$('phone').onchange = () => { conn.phone = $('phone').value.trim(); save(); };
+$('webhookUrl').onchange = () => { conn.webhookUrl = $('webhookUrl').value.trim(); save(); };
+$('webhookToken').onchange = () => { conn.webhookToken = $('webhookToken').value.trim(); save(); };
+
+$('sendOtpBtn').onclick = async () => {
+  conn.phone = $('phone').value.trim(); conn.proxy = $('proxyUrl').value.trim(); save();
+  if (!/^0\d{8,9}$/.test(conn.phone)) return setMsg('cloudMsg', 'הכנס מספר טלפון ישראלי, לדוגמה 0501234567.', 'bad');
+  setMsg('cloudMsg', 'שולח קוד…');
+  try { await api('POST', '/api/otp/send', { phone: conn.phone }); setMsg('cloudMsg', 'נשלח SMS עם קוד. הכנס אותו למטה ולחץ התחבר.', 'ok'); }
+  catch (e) { setMsg('cloudMsg', 'שליחת הקוד נכשלה: ' + e.message + '. בדוק שהשרת רץ ושהכתובת נכונה.', 'bad'); }
+};
+$('verifyOtpBtn').onclick = async () => {
+  const otp = $('otp').value.trim(); if (!otp) return setMsg('cloudMsg', 'הכנס את הקוד שקיבלת ב‑SMS.', 'bad');
+  setMsg('cloudMsg', 'מאמת…');
+  try {
+    const j = await api('POST', '/api/otp/verify', { phone: conn.phone, otp });
+    conn.token = j.token; conn.imei = j.imei; conn.sid = j.sid || ''; save(); renderSettings();
+    setMsg('cloudMsg', 'התחברת. עכשיו טען את רשימת המזגנים.', 'ok'); $('loadDevicesBtn').click();
+  } catch (e) { setMsg('cloudMsg', 'האימות נכשל: ' + e.message, 'bad'); }
+};
+$('logoutBtn').onclick = () => { conn.token = ''; conn.imei = ''; conn.sid = ''; conn.deviceId = ''; conn.deviceName = ''; save(); renderSettings(); render(); schedulePolling(); $('devList').innerHTML = ''; setConn('warn', 'Electra Smart'); };
+$('loadDevicesBtn').onclick = async () => {
+  setMsg('cloudMsg', 'טוען מזגנים…');
+  try {
+    const j = await api('GET', '/api/devices');
+    const list = $('devList'); list.innerHTML = '';
+    if (!j.devices || !j.devices.length) { setMsg('cloudMsg', 'לא נמצאו מזגנים בחשבון הזה.', 'bad'); return; }
+    for (const d of j.devices) {
+      const b = document.createElement('button'); b.type = 'button';
+      b.innerHTML = `<span></span><small></small>`; b.firstChild.textContent = d.name || ('מזגן ' + d.id); b.lastChild.textContent = `${d.model || d.deviceTypeName || ''} · ${d.id}`;
+      b.classList.toggle('on', String(d.id) === String(conn.deviceId));
+      b.onclick = () => { conn.deviceId = String(d.id); conn.deviceName = d.name || ('מזגן ' + d.id); save(); for (const x of list.children) x.classList.toggle('on', x === b); setConn('ok', conn.deviceName); render(); schedulePolling(); toast('נבחר: ' + conn.deviceName); };
+      list.appendChild(b);
+    }
+    setMsg('cloudMsg', 'בחר את המזגן שהשלט ישלוט בו.', 'ok');
+  } catch (e) { setMsg('cloudMsg', 'טעינת המזגנים נכשלה: ' + e.message, 'bad'); }
+};
+$('testWebhookBtn').onclick = async () => {
+  conn.webhookUrl = $('webhookUrl').value.trim(); conn.webhookToken = $('webhookToken').value.trim(); save();
+  if (!conn.webhookUrl) return setMsg('webhookMsg', 'הכנס כתובת Webhook.', 'bad');
+  setMsg('webhookMsg', 'שולח…');
+  try {
+    const r = await fetch(conn.webhookUrl, { method: 'POST', headers: hdrs({ 'Content-Type': 'application/json' }, conn.webhookToken), body: JSON.stringify(Object.assign(buildPayload(), { test: true })) });
+    setMsg('webhookMsg', r.ok ? 'הבדיקה הצליחה (HTTP ' + r.status + ').' : 'השרת החזיר HTTP ' + r.status, r.ok ? 'ok' : 'bad');
+  } catch (e) { setMsg('webhookMsg', 'לא הצלחתי להגיע לכתובת: ' + e.message + ' (בדוק CORS או HTTPS מול HTTP).', 'bad'); }
+};
+$('resetBtn').onclick = () => {
+  state = structuredClone(DEFAULT_STATE); logItems = []; save(); render(); renderLog(); toast('השלט אופס');
+};
+
+/* PWA install + service worker */
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('installBtn').hidden = false; });
+$('installBtn').onclick = async () => { if (!installPrompt) return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('installBtn').hidden = true; };
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
+/* boot */
+renderSettings(); render(); renderClock(); renderLog();
+setConn(conn.mode === 'local' ? 'warn' : conn.mode === 'cloud' && conn.deviceId ? 'ok' : 'warn', conn.mode === 'local' ? 'מקומי' : conn.mode === 'cloud' ? (conn.deviceName || 'Electra Smart') : 'Webhook');
+setInterval(() => { renderClock(); tickTimer(); if (state.timerHours) render(); }, 1000 * 15);
+setInterval(tickTimer, 1000);
+schedulePolling();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { renderClock(); tickTimer(); refreshTelemetry(); } });
+})();
+</script>
+</body>
+</html>
