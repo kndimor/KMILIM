@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>ירוק חברתי – סרטון תדמית</title>
+<style>
+  @font-face { font-family: 'Heebo'; font-weight: 400; src: url('fonts/Heebo-400.ttf'); }
+  @font-face { font-family: 'Heebo'; font-weight: 700; src: url('fonts/Heebo-700.ttf'); }
+  @font-face { font-family: 'Heebo'; font-weight: 900; src: url('fonts/Heebo-900.ttf'); }
+
+  :root {
+    --g900: #062B1F;
+    --g700: #0E4A35;
+    --g500: #1E7A55;
+    --lime: #A9E34B;
+    --cream: #F6F3EA;
+    --sand: #E9E2CC;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--g900); }
+  body {
+    font-family: 'Heebo', 'Noto Color Emoji', sans-serif;
+    color: var(--cream);
+    direction: rtl;
+  }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+
+  /* background */
+  #bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 110%, var(--g500) 0%, var(--g700) 45%, var(--g900) 100%);
+  }
+  .blob {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(169,227,75,.35), rgba(169,227,75,0) 65%);
+    filter: blur(2vw);
+  }
+  .leaf {
+    position: absolute; width: 6vw; height: 6vw; opacity: 0;
+    background: var(--lime);
+    border-radius: 0 60% 0 60%;
+    transform-origin: center;
+  }
+
+  /* generic scene */
+  .scene {
+    position: absolute; inset: 0; opacity: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 8vw;
+  }
+  .el { opacity: 0; will-change: transform, opacity; }
+
+  .kicker { font-weight: 700; font-size: 3.6vw; color: var(--lime); letter-spacing: .02em; margin-bottom: 1.5vw; }
+  .h1 { font-weight: 900; font-size: 8.6vw; line-height: 1.12; }
+  .h2 { font-weight: 900; font-size: 6.8vw; line-height: 1.15; }
+  .h3 { font-weight: 700; font-size: 4.4vw; line-height: 1.3; color: var(--sand); }
+  .accent { color: var(--lime); }
+
+  /* scene 1: waste icons */
+  .icons { display: flex; gap: 3.5vw; margin-top: 4vw; direction: ltr; }
+  .icon {
+    width: 14vw; height: 14vw; border-radius: 3vw;
+    background: rgba(246,243,234,.08); border: .3vw solid rgba(246,243,234,.18);
+    display: flex; align-items: center; justify-content: center; font-size: 7.5vw;
+  }
+
+  /* scene 3: services grid */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4vw; width: 84vw; margin-top: 3.5vw; }
+  .card {
+    background: rgba(246,243,234,.07); border: .25vw solid rgba(169,227,75,.35);
+    border-radius: 2.4vw; padding: 2.6vw 1vw; display: flex; flex-direction: column; align-items: center; gap: 1.2vw;
+  }
+  .card .em { font-size: 6.5vw; line-height: 1; }
+  .card .tx { font-weight: 700; font-size: 3.2vw; }
+
+  /* scene 4: people */
+  .people { font-size: 12vw; letter-spacing: .5vw; margin-bottom: 2vw; direction: ltr; }
+
+  /* scene 5: two lines */
+  .split { display: flex; gap: 5vw; margin-top: 4vw; direction: rtl; }
+  .pill {
+    padding: 2.2vw 4.5vw; border-radius: 99vw; font-weight: 900; font-size: 5.2vw;
+    background: var(--lime); color: var(--g900);
+  }
+  .pill.alt { background: transparent; color: var(--lime); border: .45vw solid var(--lime); }
+
+  /* scene 6: CTA */
+  .cta-btn {
+    margin-top: 3.5vw; padding: 2.6vw 7vw; border-radius: 99vw;
+    background: var(--lime); color: var(--g900); font-weight: 900; font-size: 5.6vw;
+    box-shadow: 0 1.5vw 4vw rgba(0,0,0,.35);
+  }
+  .contact { margin-top: 3.2vw; font-weight: 700; font-size: 4vw; color: var(--cream); direction: ltr; }
+  .contact .url { font-weight: 900; font-size: 5vw; color: var(--lime); display: block; margin-bottom: .8vw; }
+
+  /* persistent brand + progress */
+  #brand {
+    position: absolute; top: 4.5vw; left: 0; right: 0; text-align: center; opacity: 0;
+    font-weight: 900; font-size: 3.4vw; color: var(--cream);
+  }
+  #brand small { display: block; font-weight: 400; font-size: 2.4vw; color: var(--sand); margin-top: .3vw; }
+  #logo { display: inline-flex; align-items: center; gap: 1vw; direction: rtl; }
+  #logo .dot { width: 2.6vw; height: 2.6vw; border-radius: 50%; background: var(--lime); display: inline-block; }
+  #bar { position: absolute; bottom: 0; left: 0; height: .8vw; width: 0; background: var(--lime); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div class="blob" id="b1" style="width:70vw;height:70vw;left:-25vw;top:-20vw"></div>
+  <div class="blob" id="b2" style="width:60vw;height:60vw;right:-20vw;bottom:-15vw"></div>
+  <div class="leaf" id="l1"></div><div class="leaf" id="l2"></div><div class="leaf" id="l3"></div>
+  <div class="leaf" id="l4"></div><div class="leaf" id="l5"></div><div class="leaf" id="l6"></div>
+
+  <div id="brand"><div id="logo"><span class="dot"></span>ירוק חברתי</div><small>אנשים יוצרים סביבה</small></div>
+
+  <!-- 1. Hook -->
+  <section class="scene" id="s1">
+    <div class="kicker el">כל יום, במשרד שלכם</div>
+    <div class="h1 el">נייר. קרטון.<br>בקבוקים. אלקטרוניקה.</div>
+    <div class="icons">
+      <div class="icon el">📄</div><div class="icon el">📦</div><div class="icon el">🍾</div><div class="icon el">🔋</div>
+    </div>
+  </section>
+
+  <!-- 2. Turn -->
+  <section class="scene" id="s2">
+    <div class="h1 el">מה אם הפסולת הזו<br>הייתה הופכת</div>
+    <div class="h1 accent el" style="margin-top:2vw">לעבודה?</div>
+  </section>
+
+  <!-- 3. Services -->
+  <section class="scene" id="s3">
+    <div class="kicker el">ירוק חברתי</div>
+    <div class="h2 el">פתרון מיחזור מלא<br>למשרדים ולעסקים</div>
+    <div class="grid">
+      <div class="card el"><div class="em">📄</div><div class="tx">נייר</div></div>
+      <div class="card el"><div class="em">📦</div><div class="tx">קרטון</div></div>
+      <div class="card el"><div class="em">🟠</div><div class="tx">אריזות</div></div>
+      <div class="card el"><div class="em">💻</div><div class="tx">פסולת אלקטרונית</div></div>
+      <div class="card el"><div class="em">🍾</div><div class="tx">בקבוקים</div></div>
+      <div class="card el"><div class="em">👕</div><div class="tx">טקסטיל</div></div>
+    </div>
+  </section>
+
+  <!-- 4. People -->
+  <section class="scene" id="s4">
+    <div class="people el">🧑‍🦽 👩 🧑‍🦯 👨</div>
+    <div class="h2 el">כל העובדים שלנו הם<br>אנשים עם מוגבלויות</div>
+    <div class="h3 el" style="margin-top:2.5vw">שיוצאים ממעגל האבטלה<br>לעבודה משמעותית, בשכר ובכבוד</div>
+  </section>
+
+  <!-- 5. Double impact -->
+  <section class="scene" id="s5">
+    <div class="h2 el">מיחזור אחד.<br>שני שינויים אמיתיים.</div>
+    <div class="split">
+      <div class="pill el">🌱 לסביבה</div>
+      <div class="pill alt el">🤝 לחברה</div>
+    </div>
+  </section>
+
+  <!-- 6. CTA -->
+  <section class="scene" id="s6">
+    <div class="kicker el">המשרד שלכם יכול להיות הבא</div>
+    <div class="h2 el">הצטרפו לעסקים<br>שכבר ממחזרים איתנו</div>
+    <div class="cta-btn el">דברו איתנו ←</div>
+    <div class="contact el"><span class="url">yarokhevrati.co.il</span>052-5268825</div>
+  </section>
+
+  <div id="bar"></div>
+</div>
+
+<script>
+  // ---- timeline engine: every visual is a pure function of time t (seconds) ----
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const easeOut = x => 1 - Math.pow(1 - x, 3);
+  const easeInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const p = (t, s, d) => clamp((t - s) / d, 0, 1);
+
+  const TOTAL = 30;
+  const SCENES = [
+    { id: 's1', start: 0.0,  end: 5.6  },
+    { id: 's2', start: 5.6,  end: 10.2 },
+    { id: 's3', start: 10.2, end: 16.4 },
+    { id: 's4', start: 16.4, end: 21.6 },
+    { id: 's5', start: 21.6, end: 25.4 },
+    { id: 's6', start: 25.4, end: 30.0 },
+  ];
+  const FADE = 0.45;
+  const STAGGER = 0.22;
+
+  function seek(t) {
+    // background motion
+    $('#b1').style.transform = `translate(${Math.sin(t * .35) * 4}vw, ${Math.cos(t * .3) * 4}vw)`;
+    $('#b2').style.transform = `translate(${Math.cos(t * .28) * 5}vw, ${Math.sin(t * .33) * 4}vw)`;
+    $$('.leaf').forEach((lf, i) => {
+      const phase = i * 1.7, speed = 0.09 + i * 0.012;
+      const y = ((t * speed * 100 + phase * 37) % 130) - 15;      // 0..130 vh, drifting down
+      const x = 8 + i * 15 + Math.sin(t * .6 + phase) * 4;
+      lf.style.opacity = 0.12 + (i % 3) * 0.05;
+      lf.style.transform = `translate(${x}vw, ${y}vh) rotate(${t * 40 + phase * 50}deg) scale(${.6 + (i % 4) * .18})`;
+    });
+
+    // brand header
+    $('#brand').style.opacity = easeOut(p(t, 0.3, 0.8));
+    $('#brand').style.transform = `translateY(${(1 - easeOut(p(t, 0.3, 0.8))) * -2}vw)`;
+
+    // progress bar
+    $('#bar').style.width = (clamp(t / TOTAL, 0, 1) * 100) + '%';
+
+    // scenes
+    SCENES.forEach(sc => {
+      const el = document.getElementById(sc.id);
+      const active = t >= sc.start - FADE && t < sc.end;
+      if (!active) { el.style.opacity = 0; return; }
+      const fin = easeOut(p(t, sc.start, FADE));
+      const fout = 1 - easeInOut(p(t, sc.end - FADE, FADE));
+      el.style.opacity = Math.min(fin, fout);
+      el.style.transform = `scale(${0.985 + 0.015 * fin})`;
+      // stagger children
+      $$('#' + sc.id + ' .el').forEach((c, i) => {
+        const k = easeOut(p(t, sc.start + 0.15 + i * STAGGER, 0.55));
+        c.style.opacity = k;
+        c.style.transform = `translateY(${(1 - k) * 4}vw) scale(${0.96 + 0.04 * k})`;
+      });
+    });
+
+    // scene-specific flourishes
+    // s2 "לעבודה?" pulses once it lands
+    const s2acc = $('#s2 .accent');
+    if (t > 7.4 && t < 10.2) {
+      const k = 1 + Math.sin((t - 7.4) * 5) * 0.03;
+      s2acc.style.transform = `scale(${k})`;
+    }
+    // s6 button pulse to drive the click
+    const btn = $('#s6 .cta-btn');
+    if (t > 27 && t < 30) {
+      const k = 1 + Math.abs(Math.sin((t - 27) * 3.2)) * 0.05;
+      btn.style.transform = `scale(${k})`;
+    }
+  }
+  window.seek = seek;
+  window.TOTAL = TOTAL;
+
+  // live preview in a browser: play in a loop
+  if (!location.search.includes('render')) {
+    const t0 = performance.now();
+    (function loop() { seek(((performance.now() - t0) / 1000) % TOTAL); requestAnimationFrame(loop); })();
+  }
+</script>
+</body>
+</html>
